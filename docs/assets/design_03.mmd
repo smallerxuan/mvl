@@ -1,0 +1,15 @@
+flowchart LR
+    subgraph P["生产者（任意上下文）"]
+        A["传感器任务"]
+        B["网络任务"]
+        C["按键 / DMA 中断 ISR"]
+    end
+    Q[/"消息队列<br>深度 MVL_MSG_QUEUE_DEPTH × 8 字节"/]
+    subgraph G["LVGL 主任务（唯一允许调用 lv_*() 的上下文）"]
+        S1["① mvl_msg_process()<br>串行执行所有回调"] --> S2["② lv_timer_handler()<br>统一渲染一帧"] --> S3["③ 休眠至下一周期"]
+    end
+    A -->|"mvl_msg_post()"| Q
+    B -->|"mvl_msg_try_post()"| Q
+    C -->|"mvl_msg_post_isr()"| Q
+    Q -->|"非阻塞取出"| S1
+    S2 --> SCR["显示屏"]

@@ -1,0 +1,20 @@
+sequenceDiagram
+    participant T as 后台任务
+    participant M as Model
+    participant E as 事件总线
+    participant G as LVGL 主任务
+    participant V as View
+
+    Note over T,V: 后台 → UI（状态推送）
+    T->>M: set_temp(25.5)
+    M->>M: 互斥写入状态
+    M->>E: publish(EVT_TEMP_UPDATED，值拷贝)
+    E->>G: mvl_msg_post(dispatch, job)
+    G->>G: ViewModel 回调（读事件数据 / 快照）
+    G->>V: mvl_view_home_set_temp("25.5°C")
+
+    Note over T,V: UI → 后台（命令下发，同样走总线）
+    V->>V: 用户点击按钮（LVGL 上下文）
+    V->>E: publish(EVT_CMD_MOTOR_TOGGLE)
+    E->>T: 投递到任务队列（MVL_EVT_CTX_TASK）
+    T->>T: 取出执行（与 UI 完全解耦）

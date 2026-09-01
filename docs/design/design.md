@@ -20,12 +20,9 @@
 
 **一句话**：LVGL 8.x 不是线程安全的。MVL 把所有外部上下文的 UI 操作打包成「函数指针 + 上下文指针」消息投递到队列，由 LVGL 主任务（唯一允许碰 LVGL 的线程）统一取出执行；再在其之上用事件总线 + MVVM-Lite 分层解决「谁该知道谁」的解耦问题。
 
-```mermaid
-flowchart LR
-    A["任意任务 / ISR"] -->|"① 投递消息"| Q[/"线程安全队列"/]
-    Q -->|"② LVGL 主任务消费"| G["LVGL 主任务<br>安全执行 lv_*()"]
-    G -->|"③ 统一渲染"| D["显示屏"]
-```
+![速览：任意任务或 ISR 投递消息到线程安全队列，LVGL 主任务统一消费执行并渲染到显示屏](../assets/design_01.png)
+
+<!-- 图源：docs/assets/design_01.mmd（mermaid），修改后重新渲染 PNG -->
 
 三步接入：
 
@@ -43,13 +40,9 @@ LVGL 8.x 的所有 `lv_*()` API（创建对象、修改属性、处理输入等�
 
 当多个任务（传感器采集、网络通信、DMA 中断等）都需要更新 UI 时，直接调用 LVGL API 的后果：
 
-```mermaid
-flowchart LR
-    A["传感器任务"] -->|"直接调用 lv_*()"| X["LVGL 对象树<br>（内部无并发保护）"]
-    B["网络任务"] -->|"直接调用 lv_*()"| X
-    C["外设 ISR"] -->|"直接调用 lv_*()"| X
-    X -.->|"多上下文交错读写"| D["HardFault · 画面撕裂<br>状态不一致 · 时序竞争"]
-```
+![问题背景：传感器任务、网络任务、外设 ISR 直接调用 lv_*()，多上下文交错读写导致 HardFault、画面撕裂、状态不一致](../assets/design_02.png)
+
+<!-- 图源：docs/assets/design_02.mmd（mermaid），修改后重新渲染 PNG -->
 
 在双核 SMP 平台（如 ESP32-S3）上这不是小概率事件——两个核是**真并发**，可致堆损坏与随机崩溃。
 
@@ -80,45 +73,17 @@ flowchart LR
 
 ### 3.2 总体架构
 
-```mermaid
-flowchart LR
-    subgraph P["生产者（任意上下文）"]
-        A["传感器任务"]
-        B["网络任务"]
-        C["按键 / DMA 中断 ISR"]
-    end
-    Q[/"消息队列<br>深度 MVL_MSG_QUEUE_DEPTH × 8 字节"/]
-    subgraph G["LVGL 主任务（唯一允许调用 lv_*() 的上下文）"]
-        S1["① mvl_msg_process()<br>串行执行所有回调"] --> S2["② lv_timer_handler()<br>统一渲染一帧"] --> S3["③ 休眠至下一周期"]
-    end
-    A -->|"mvl_msg_post()"| Q
-    B -->|"mvl_msg_try_post()"| Q
-    C -->|"mvl_msg_post_isr()"| Q
-    Q -->|"非阻塞取出"| S1
-    S2 --> SCR["显示屏"]
-```
+![mvl_msg 总体架构：各类生产者经 mvl_msg_post 系列 API 投递到消息队列，LVGL 主任务内 mvl_msg_process 串行执行所有回调后由 lv_timer_handler 统一渲染一帧](../assets/design_03.png)
+
+<!-- 图源：docs/assets/design_03.mmd（mermaid），修改后重新渲染 PNG -->
 
 图中 ① → ② → ③ 为一个 UI 周期，循环执行（消费点的两种接入形态见 §6）。
 
 ### 3.3 一条消息的旅程
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant T as 传感器任务
-    participant Q as 消息队列
-    participant G as LVGL 主任务
-    participant S as 屏幕
+![时序图：一条消息从传感器任务经队列到 LVGL 主任务消费执行、统一刷新的完整旅程](../assets/design_04.png)
 
-    T->>Q: mvl_msg_post(update_temp_label, ctx)
-    Note over Q: 消息仅 8 字节（函数指针 + ctx 指针）
-    loop 每个 UI 周期（约 5~16 ms）
-        G->>Q: mvl_msg_process() 非阻塞取空队列
-        Q-->>G: msg { action, ctx }
-        G->>G: update_temp_label(ctx) —— 安全调用 lv_*()
-        G->>S: lv_timer_handler() 统一刷新本帧
-    end
-```
+<!-- 图源：docs/assets/design_04.mmd（mermaid），修改后重新渲染 PNG -->
 
 ### 3.4 API 与三种投递语义
 
@@ -420,28 +385,9 @@ net_connect(s.wifi_pending_ssid, s.wifi_pending_password);
 
 ### 5.6 完整回环
 
-```mermaid
-sequenceDiagram
-    participant T as 后台任务
-    participant M as Model
-    participant E as 事件总线
-    participant G as LVGL 主任务
-    participant V as View
+![时序图：事件总线完整回环——后台到 UI 的状态推送与 UI 到后台的命令下发](../assets/design_05.png)
 
-    Note over T,V: 后台 → UI（状态推送）
-    T->>M: set_temp(25.5)
-    M->>M: 互斥写入状态
-    M->>E: publish(EVT_TEMP_UPDATED，值拷贝)
-    E->>G: mvl_msg_post(dispatch, job)
-    G->>G: ViewModel 回调（读事件数据 / 快照）
-    G->>V: mvl_view_home_set_temp("25.5°C")
-
-    Note over T,V: UI → 后台（命令下发，同样走总线）
-    V->>V: 用户点击按钮（LVGL 上下文）
-    V->>E: publish(EVT_CMD_MOTOR_TOGGLE)
-    E->>T: 投递到任务队列（MVL_EVT_CTX_TASK）
-    T->>T: 取出执行（与 UI 完全解耦）
-```
+<!-- 图源：docs/assets/design_05.mmd（mermaid），修改后重新渲染 PNG -->
 
 ### 5.7 解耦边界：共享契约，不共享实现
 

@@ -1,0 +1,15 @@
+sequenceDiagram
+    autonumber
+    participant T as 传感器任务
+    participant Q as 消息队列
+    participant G as LVGL 主任务
+    participant S as 屏幕
+
+    T->>Q: mvl_msg_post(update_temp_label, ctx)
+    Note over Q: 消息仅 8 字节（函数指针 + ctx 指针）
+    loop 每个 UI 周期（约 5~16 ms）
+        G->>Q: mvl_msg_process() 非阻塞取空队列
+        Q-->>G: msg { action, ctx }
+        G->>G: update_temp_label(ctx) —— 安全调用 lv_*()
+        G->>S: lv_timer_handler() 统一刷新本帧
+    end
