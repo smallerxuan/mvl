@@ -1,3 +1,4 @@
+%%{init: {"theme":"base","flowchart":{"curve":"basis","nodeSpacing":35,"rankSpacing":50},"themeVariables":{"fontSize":"15px","primaryColor":"#EAF2FF","primaryBorderColor":"#4C7DD9","primaryTextColor":"#20304D","lineColor":"#8A97AD","clusterBkg":"#F5F8FF","clusterBorder":"#C9DBF7","edgeLabelBackground":"#FFFFFF"}}}%%
 flowchart LR
     subgraph L["LVGL main task, the only task that calls lv_*()"]
         V["View, lv_*() calls"]
@@ -10,3 +11,11 @@ flowchart LR
     EVT -->|"dispatch to subscriber context"| VM["ViewModel"]
     VM -.->|"read snapshot"| M
     VM -->|"View interface"| V
+
+    classDef lvgl fill:#E6F6EC,stroke:#3FA66A,color:#1D4D33;
+    classDef store fill:#FFF4DC,stroke:#D9A13B,color:#5C4310;
+    classDef bus fill:#EFE8FF,stroke:#7A5CD6,color:#3D2E73;
+    classDef danger fill:#FDE8E8,stroke:#D64545,color:#7A1F1F;
+    class L,V lvgl;
+    class MSG,EVT bus;
+    class M store;

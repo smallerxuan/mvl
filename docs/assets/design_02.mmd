@@ -1,5 +1,13 @@
+%%{init: {"theme":"base","flowchart":{"curve":"basis","nodeSpacing":35,"rankSpacing":50},"themeVariables":{"fontSize":"15px","primaryColor":"#EAF2FF","primaryBorderColor":"#4C7DD9","primaryTextColor":"#20304D","lineColor":"#8A97AD","clusterBkg":"#F5F8FF","clusterBorder":"#C9DBF7","edgeLabelBackground":"#FFFFFF"}}}%%
 flowchart LR
     A["传感器任务"] -->|"直接调用 lv_*()"| X["LVGL 对象树<br>（内部无并发保护）"]
     B["网络任务"] -->|"直接调用 lv_*()"| X
     C["外设 ISR"] -->|"直接调用 lv_*()"| X
     X -.->|"多上下文交错读写"| D["HardFault · 画面撕裂<br>状态不一致 · 时序竞争"]
+
+    classDef lvgl fill:#E6F6EC,stroke:#3FA66A,color:#1D4D33;
+    classDef store fill:#FFF4DC,stroke:#D9A13B,color:#5C4310;
+    classDef bus fill:#EFE8FF,stroke:#7A5CD6,color:#3D2E73;
+    classDef danger fill:#FDE8E8,stroke:#D64545,color:#7A1F1F;
+    class X store;
+    class D danger;

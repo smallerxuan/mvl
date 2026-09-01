@@ -1,0 +1,27 @@
+%%{init: {"theme":"base","flowchart":{"curve":"basis","nodeSpacing":30,"rankSpacing":45},"themeVariables":{"fontSize":"15px","primaryColor":"#EAF2FF","primaryBorderColor":"#4C7DD9","primaryTextColor":"#20304D","lineColor":"#8A97AD","clusterBkg":"#F5F8FF","clusterBorder":"#C9DBF7","edgeLabelBackground":"#FFFFFF"}}}%%
+flowchart LR
+    subgraph BG["后台任务 / ISR（任意上下文，不认识 UI）"]
+        SRC["传感器任务 · 网络任务<br>按键处理 …"]
+    end
+
+    subgraph DEC["解耦层"]
+        MDL["Model（应用手写）<br>状态中心 · 互斥保护<br>唯一权威数据源"]
+        EVT["mvl_evt（库提供）<br>事件总线<br>按订阅者声明的上下文路由"]
+    end
+
+    subgraph LV["LVGL 主任务（唯一允许调用 lv_*() 的上下文）"]
+        VM["ViewModel<br>订阅回调"] --> VI["View 接口层<br>唯一认识 ui_ 控件"] --> VW["View<br>GUI Guider widgets<br>+ 事件绑定"]
+    end
+
+    SRC -->|"① set_xxx() 写状态"| MDL
+    MDL -->|"② 变更即发布状态事件"| EVT
+    EVT -->|"③ 经 mvl_msg 投递到 LVGL 上下文"| VM
+    VW -.->|"④ 用户操作 → 发布命令事件"| EVT
+    EVT -.->|"⑤ 命令事件投递到任务队列"| SRC
+
+    classDef lvgl fill:#E6F6EC,stroke:#3FA66A,color:#1D4D33;
+    classDef store fill:#FFF4DC,stroke:#D9A13B,color:#5C4310;
+    classDef bus fill:#EFE8FF,stroke:#7A5CD6,color:#3D2E73;
+    class LV lvgl;
+    class MDL store;
+    class EVT bus;
