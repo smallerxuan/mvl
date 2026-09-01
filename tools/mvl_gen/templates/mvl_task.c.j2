@@ -1,0 +1,56 @@
+/*
+ * mvl_task_{{ task.name }} —— {{ task.name }} 任务事件消费骨架
+ * （本文件骨架由 mvl-gen 生成；事件处理体写在 USER CODE 段内）
+ *
+ * 任务订阅者经自己的队列消费事件（MVL_EVT_CTX_TASK）：
+ * 启动期注册订阅 → 事件循环里取事件 → switch 分发。
+ */
+#include "mvl_events.h"
+#include "mvl_model.h"
+
+#include <mvl/mvl_evt.h>
+#include <mvl/mvl_port.h>
+
+#include <stddef.h>
+
+/* 任务接收队列（元素类型 mvl_evt_t） */
+static void *s_{{ task.name }}_queue;
+
+/* USER CODE BEGIN task_{{ task.name }}_header */
+{{ user_code('task_' + task.name + '_header', '/* 任务私有头文件 include / 私有声明 */') }}
+/* USER CODE END task_{{ task.name }}_header */
+
+/* 启动期调用一次：建队列 + 注册订阅（须在 mvl_evt_init 之后） */
+void mvl_task_{{ task.name }}_init(void)
+{
+    s_{{ task.name }}_queue = mvl_port_queue_create(8, sizeof(mvl_evt_t));
+    mvl_port_assert(s_{{ task.name }}_queue != NULL);
+
+{% for evt in task.events %}
+    mvl_evt_subscribe({{ evt.id }}, NULL, MVL_EVT_CTX_TASK, s_{{ task.name }}_queue);
+{% endfor %}
+}
+
+/* 任务主循环：阻塞取事件并分发 */
+void mvl_task_{{ task.name }}_loop(void)
+{
+    mvl_evt_t evt;
+
+    for (;;) {
+        if (mvl_port_queue_receive(s_{{ task.name }}_queue, &evt,
+                                   MVL_PORT_WAIT_FOREVER) != MVL_PORT_OK) {
+            continue;
+        }
+        switch (evt.id) {
+{% for evt in task.events %}
+        case {{ evt.id }}:
+            /* USER CODE BEGIN {{ task.name }}_{{ evt.id }} */
+{{ user_code(task.name + '_' + evt.id, '            /* TODO: 处理 ' + (evt.doc or evt.id) + ' */') }}
+            /* USER CODE END {{ task.name }}_{{ evt.id }} */
+            break;
+{% endfor %}
+        default:
+            break;
+        }
+    }
+}

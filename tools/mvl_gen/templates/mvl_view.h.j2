@@ -1,0 +1,28 @@
+/*
+ * mvl_view_{{ page.page }} —— {{ page.page }} 页面 View 接口层
+ * （模式说明见 MVL 库 docs/design/design.md；
+ *   本文件骨架由 mvl-gen 生成，接口签名请改 mvl_project.yaml）
+ *
+ * 本页面唯一认识 screen_ 控件的手写文件；
+ * 接口只允许在 LVGL 主任务上下文调用（经 mvl_vm / mvl_msg 调度）。
+ */
+#ifndef _MVL_VIEW_{{ page.page | upper }}_H_
+#define _MVL_VIEW_{{ page.page | upper }}_H_
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include <stdint.h>
+#include "mvl_model.h"   /* Model 与 View 共享的契约类型 */
+
+{% for fn in page.functions %}
+{{ "/* " + fn.doc + " */" if fn.doc }}
+{{ fn.returns }} mvl_view_{{ page.page }}_{{ fn.name }}({{ fn.args }});
+
+{% endfor %}
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* _MVL_VIEW_{{ page.page | upper }}_H_ */

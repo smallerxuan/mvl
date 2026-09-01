@@ -1,0 +1,55 @@
+# {{ project }} MVL 接线报告
+
+> 本文件由 mvl-gen 从 mvl_project.yaml 自动生成，可直接进项目文档。
+
+## 事件表
+
+| 事件 | ID | 段 | 载荷 | 说明 |
+|---|---|---|---|---|
+{% for evt in ir.events %}
+| {{ evt.id }} | {{ evt.value }} | {{ evt.segment }} | {{ evt.payload or 'none' }} | {{ evt.doc or '' }} |
+{% endfor %}
+
+## 发布/订阅矩阵
+
+| 事件 | 发布者（上下文） | 订阅者（上下文） |
+|---|---|---|
+{% for evt in ir.events %}
+| {{ evt.id }} | {% for p in evt.publishers %}{{ p.module }}({{ p.context }}){{ ", " if not loop.last }}{% endfor %} | {% for s in evt.subscribers %}{{ s.handler or s.task }}({{ s.context }}){{ ", " if not loop.last }}{% endfor %} |
+{% endfor %}
+
+## Model 状态字段
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+{% for f in ir.model %}
+| {{ f.name }} | {{ f.type }} | {{ f.doc or '' }} |
+{% endfor %}
+
+## Model 写接口（set_xxx 绑定发布）
+
+| 接口 | 发布事件 |
+|---|---|
+{% for st in ir.setters %}
+| mvl_model_set_{{ st.name }}({{ st.args }}) | {{ st.event or '（只写不发）' }} |
+{% endfor %}
+
+## View 接口
+
+{% for page in ir.view_interfaces %}
+### 页面 {{ page.page }}（mvl_view_{{ page.page }}）
+
+{% for fn in page.functions %}
+- `{{ fn.returns }} mvl_view_{{ page.page }}_{{ fn.name }}({{ fn.args }})`{{ " —— " + fn.doc if fn.doc }}
+{% endfor %}
+{% endfor %}
+
+## 静态检查结果
+
+{% if issues %}
+{% for i in issues %}
+- [{{ i.rule }}] **{{ i.level }}**：{{ i.message }}
+{% endfor %}
+{% else %}
+全部通过（C1~C4 / C7 / C8 无错误、无警告；C5/C6 由生成器构造保证）。
+{% endif %}

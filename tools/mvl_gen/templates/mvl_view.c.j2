@@ -1,0 +1,27 @@
+#include "mvl_view_{{ page.page }}.h"
+
+#include <string.h>
+
+/* USER CODE BEGIN view_{{ page.page }}_includes */
+{{ user_code('view_' + page.page + '_includes', '/* 允许 include gui_guider.h 的唯一文件（View 层特许） */') }}
+/* USER CODE END view_{{ page.page }}_includes */
+
+/* USER CODE BEGIN view_{{ page.page }}_private */
+{{ user_code('view_' + page.page + '_private', '/* 页面私有状态与私有函数 */') }}
+/* USER CODE END view_{{ page.page }}_private */
+
+{% for fn in page.functions %}
+{{ fn.returns }} mvl_view_{{ page.page }}_{{ fn.name }}({{ fn.args }})
+{
+    /* USER CODE BEGIN {{ page.page }}_{{ fn.name }} */
+{% if fn.returns == "void" %}
+{{ user_code(page.page + '_' + fn.name, '    /* TODO: 实现 View 逻辑（仅 LVGL 主任务上下文调用） */') }}
+{% elif "*" in fn.returns %}
+{{ user_code(page.page + '_' + fn.name, '    /* TODO: 实现 View 逻辑（仅 LVGL 主任务上下文调用） */\n    return NULL;') }}
+{% else %}
+{{ user_code(page.page + '_' + fn.name, '    /* TODO: 实现 View 逻辑（仅 LVGL 主任务上下文调用） */\n    return 0;') }}
+{% endif %}
+    /* USER CODE END {{ page.page }}_{{ fn.name }} */
+}
+
+{% endfor %}

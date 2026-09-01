@@ -1,0 +1,99 @@
+# WiFi 模块 MVL 接线设计样例（唯一事实源演示）
+# types / setters 两节用于覆盖生成 mvl_model.h 契约类型与
+# mvl_model_set_xxx() 所需的信息。
+project: wifi_demo
+mvl_version: 0.1.0
+
+config:
+  lvgl_job_pool: 8          # MVL_EVT_LVGL_JOB_POOL_SIZE（C3 检查依据）
+
+types: |                    # Model/View/生产者共享的契约类型（脱离 esp_wifi.h）
+  #define MVL_WIFI_AP_MAX   10
+
+  /* WiFi 条目：Model/View/生产者共享的契约类型（脱离 esp_wifi.h） */
+  typedef struct {
+      char    ssid[33];
+      int8_t  rssi;
+      uint8_t authmode;
+  } mvl_wifi_ap_t;
+
+  typedef enum {
+      MVL_WIFI_SCAN_IDLE = 0,
+      MVL_WIFI_SCAN_DONE,
+      MVL_WIFI_SCAN_FAILED,
+  } mvl_wifi_scan_state_t;
+
+  typedef enum {
+      MVL_WIFI_CONN_IDLE = 0,
+      MVL_WIFI_CONN_CONNECTING,
+      MVL_WIFI_CONN_CONNECTED,
+      MVL_WIFI_CONN_FAILED,
+  } mvl_wifi_conn_state_t;
+
+model:                        # mvl_state_t 的字段
+  - { name: wifi_scan_state,      type: mvl_wifi_scan_state_t, doc: 扫描状态 }
+  - { name: wifi_ap_count,        type: uint16_t,              doc: 扫描到的 AP 数 }
+  - { name: wifi_aps,             type: "mvl_wifi_ap_t[10]",   doc: 扫描结果 }
+  - { name: wifi_pending_ssid,    type: "char[33]",            doc: 待连接凭据（配合 EVT_CMD_WIFI_CONNECT） }
+  - { name: wifi_pending_password, type: "char[65]" }
+  - { name: wifi_conn_state,      type: mvl_wifi_conn_state_t, doc: 连接状态（配合 EVT_WIFI_CONN_CHANGED） }
+
+setters:                      # Model 写接口：写状态 + 自动发布绑定事件
+  - name: wifi_scan_results
+    args: "const mvl_wifi_ap_t *aps, uint16_t count"
+    event: EVT_WIFI_SCAN_UPDATED
+    doc: 写入扫描结果（wifi_aps / wifi_ap_count / wifi_scan_state）
+  - name: wifi_scan_failed
+    args: "void"
+    event: EVT_WIFI_SCAN_UPDATED
+    doc: 标记扫描失败
+  - name: pending_wifi_cred
+    args: "const char *ssid, const char *password"
+    # 无 event：只写状态不发布，连接命令由 View 另行发布 EVT_CMD_WIFI_CONNECT
+    doc: 写入待连接凭据
+  - name: wifi_conn_state
+    args: "mvl_wifi_conn_state_t state"
+    event: EVT_WIFI_CONN_CHANGED
+    doc: 更新连接状态
+
+events:
+  - id: EVT_WIFI_SCAN_UPDATED   # 状态事件（后台 → UI）
+    segment: 32                 # 网络段
+    payload: none               # 大数组走「事件 + Model 快照」
+    doc: WiFi 扫描结果更新
+    publishers:
+      - { module: wifi_scan,  context: sys_evt }     # 经 mvl_model_set_wifi_scan_results
+    subscribers:
+      - { handler: on_wifi_scan_updated, context: lvgl }   # ViewModel 回调
+
+  - id: EVT_WIFI_CONN_CHANGED   # 状态事件（后台 → UI）
+    segment: 32
+    payload: none
+    doc: WiFi 连接状态变更
+    publishers:
+      - { module: net_manage, context: task }        # 经 mvl_model_set_wifi_conn_state
+    subscribers:
+      - { handler: on_wifi_conn_changed, context: lvgl }
+
+  - id: EVT_CMD_WIFI_CONNECT    # 命令事件（UI → 后台）
+    segment: 96
+    payload: none               # 参数经 model.wifi_pending_* 传递
+    doc: 发起 WiFi 连接
+    publishers:
+      - { module: view_wifi_pass, context: lvgl }    # View 按钮回调
+    subscribers:
+      - { task: net_manage, context: task_queue }    # 目标任务队列消费
+
+view_interfaces:
+  - page: wifi
+    functions:
+      - name: show_scan_results
+        args: "uint16_t count, const mvl_wifi_ap_t *aps, mvl_wifi_scan_state_t state"
+        doc: 展示 WiFi 扫描结果（state = MVL_WIFI_SCAN_FAILED 时显示错误提示）
+      - name: show_conn_state
+        args: "mvl_wifi_conn_state_t state, const char *ssid"
+        doc: 展示 WiFi 连接状态（连接中/已连接/失败），ssid 用于成功时的回显
+      - name: get_selected_ssid
+        args: "void"
+        returns: "const char*"
+        doc: 获取当前选中的 WiFi SSID（密码输入页使用）

@@ -1,0 +1,38 @@
+#include "mvl_vm.h"
+#include "mvl_events.h"
+#include "mvl_model.h"
+{% for page in ir.view_interfaces %}
+#include "mvl_view_{{ page.page }}.h"
+{% endfor %}
+
+#include <mvl/mvl_evt.h>
+
+#include <stddef.h>
+
+{% for evt in ir.events %}
+{% for sub in evt.subscribers %}
+{% if sub.context == "lvgl" %}
+/* {{ evt.doc or evt.id }} */
+static void {{ sub.handler }}(const mvl_evt_t *evt)
+{
+    (void)evt;
+
+    /* USER CODE BEGIN {{ sub.handler }} */
+{% set default_body = '    mvl_state_t s = mvl_model_snapshot();\n    (void)s;\n    /* TODO: 读快照 / 事件载荷，调用对应 View 接口 */' %}
+{{ user_code(sub.handler, default_body) }}
+    /* USER CODE END {{ sub.handler }} */
+}
+
+{% endif %}
+{% endfor %}
+{% endfor %}
+void mvl_vm_init(void)
+{
+{% for evt in ir.events %}
+{% for sub in evt.subscribers %}
+{% if sub.context == "lvgl" %}
+    mvl_evt_subscribe({{ evt.id }}, {{ sub.handler }}, MVL_EVT_CTX_LVGL, NULL);
+{% endif %}
+{% endfor %}
+{% endfor %}
+}

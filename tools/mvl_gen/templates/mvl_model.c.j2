@@ -1,0 +1,60 @@
+#include "mvl_model.h"
+#include "mvl_events.h"
+
+#include <mvl/mvl_evt.h>
+#include <mvl/mvl_port.h>
+
+#include <string.h>
+
+static mvl_state_t  s_state;
+static void        *s_lock;
+
+void mvl_model_init(void)
+{
+    s_lock = mvl_port_mutex_create();
+    mvl_port_assert(s_lock != NULL);
+
+    memset(&s_state, 0, sizeof(s_state));
+    /* USER CODE BEGIN model_init */
+{{ user_code('model_init', '    /* TODO: 需要非零初始值的字段在此赋值 */') }}
+    /* USER CODE END model_init */
+}
+
+mvl_state_t mvl_model_snapshot(void)
+{
+    mvl_state_t copy;
+
+    mvl_port_mutex_lock(s_lock);
+    copy = s_state;
+    mvl_port_mutex_unlock(s_lock);
+    return copy;
+}
+
+{% for st in ir.setters %}
+void mvl_model_set_{{ st.name }}({{ st.args }})
+{
+    mvl_port_mutex_lock(s_lock);
+    /* USER CODE BEGIN set_{{ st.name }} */
+{{ user_code('set_' + st.name, '    /* TODO: 写状态字段（互斥保护内，勿阻塞） */') }}
+    /* USER CODE END set_{{ st.name }} */
+    mvl_port_mutex_unlock(s_lock);
+
+{% if st.event %}
+{% set evt = ir.events | selectattr('id', 'equalto', st.event) | first %}
+{% if evt and evt.payload_size > 0 %}
+    mvl_evt_data_t data = {0};
+    /* USER CODE BEGIN set_{{ st.name }}_payload */
+{{ user_code('set_' + st.name + '_payload', '    /* TODO: 填充事件载荷 data（<= 8 字节值拷贝） */') }}
+    /* USER CODE END set_{{ st.name }}_payload */
+    /* 先写后发：订阅者读到事件时，快照必已是新值 */
+    mvl_evt_publish({{ st.event }}, &data);
+{% else %}
+    /* 先写后发：订阅者读到事件时，快照必已是新值 */
+    mvl_evt_publish({{ st.event }}, NULL);
+{% endif %}
+{% else %}
+    /* 只写状态不发布事件 */
+{% endif %}
+}
+
+{% endfor %}

@@ -1,0 +1,23 @@
+/*
+ * mvl_vm —— ViewModel（模式说明见 MVL 库 docs/design/design.md）
+ * （本文件由 mvl-gen 全量生成，请勿手改）
+ *
+ * 订阅事件 → 读事件数据 / Model 快照 → 调 View 接口。
+ * 所有回调在 LVGL 主任务执行（MVL_EVT_CTX_LVGL）；
+ * 禁止直接操作 ui_ 控件、禁止业务计算、禁止阻塞。
+ */
+#ifndef _MVL_VM_H_
+#define _MVL_VM_H_
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* 完成全部事件订阅（须在 mvl_evt_init / mvl_model_init 之后调用） */
+void mvl_vm_init(void);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* _MVL_VM_H_ */

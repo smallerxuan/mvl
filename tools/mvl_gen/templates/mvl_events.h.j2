@@ -1,0 +1,43 @@
+/*
+ * mvl_events —— 应用事件 ID 表（本文件由 mvl-gen 自动生成，请勿手改）
+ *
+ * 事件 ID 全系统唯一、按模块分段；0 保留，且必须小于 MVL_EVT_MAX_ID。
+ * 接线设计见 mvl_project.yaml（唯一事实源），修改请改 YAML 后重新生成。
+ */
+#ifndef _MVL_EVENTS_H_
+#define _MVL_EVENTS_H_
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include <stdint.h>
+
+#include <mvl/mvl_config.h>
+
+/**
+ * @brief 应用事件 ID（按 segment 分段）
+ */
+typedef enum {
+    EVT_NONE = 0,
+{% set ns = namespace(last_seg=None) %}
+{% for evt in ir.events %}
+{% if ns.last_seg != evt.segment %}
+
+    /* ---- 段 {{ evt.segment }} ---- */
+{% set ns.last_seg = evt.segment %}
+{% endif %}
+    {{ evt.id }} = {{ evt.value }},{{ "  /* " + evt.doc + " */" if evt.doc }}
+{% endfor %}
+
+    EVT_APP_MAX
+} app_evt_id_t;
+
+/* 构造期校验：事件 ID 空间不得越出订阅表容量 */
+_Static_assert(EVT_APP_MAX <= MVL_EVT_MAX_ID, "EVT_APP_MAX exceeds MVL_EVT_MAX_ID");
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* _MVL_EVENTS_H_ */

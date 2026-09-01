@@ -1,0 +1,46 @@
+/*
+ * mvl_model —— 状态中心（MVVM 中的 Model；模式说明见 MVL 库 docs/design/design.md）
+ * （本文件骨架由 mvl-gen 生成；契约类型与字段调整请改 mvl_project.yaml）
+ *
+ * 系统状态唯一权威数据源。规则只有一条：
+ * 状态字段只能通过 set_xxx() 修改——函数内完成「写状态 + 发事件」的绑定，
+ * 状态变更必然伴随事件，UI 永不漏刷新；UI 侧只通过 snapshot() 读。
+ * 本模块不包含任何 LVGL 调用。
+ */
+#ifndef _MVL_MODEL_H_
+#define _MVL_MODEL_H_
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include <stdint.h>
+#include <stdbool.h>
+
+/* USER CODE BEGIN model_types */
+{{ user_code('model_types', ir.types) }}
+/* USER CODE END model_types */
+
+/* 系统状态：全系统唯一权威数据源 */
+typedef struct {
+{% for field in ir.model %}
+    {{ field.decl }}{{ "  /* " + field.doc + " */" if field.doc }}
+{% endfor %}
+} mvl_state_t;
+
+void mvl_model_init(void);
+
+/* UI 侧读接口：互斥保护的整体快照，一次拷贝 */
+mvl_state_t mvl_model_snapshot(void);
+
+/* 后台侧写接口：写状态 + 自动发布对应事件（event 为空者只写不发） */
+{% for st in ir.setters %}
+{{ "/* " + st.doc + " */" if st.doc }}
+void mvl_model_set_{{ st.name }}({{ st.args }});
+{% endfor %}
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* _MVL_MODEL_H_ */

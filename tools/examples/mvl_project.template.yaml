@@ -1,0 +1,81 @@
+# ============================================================================
+# MVL 接线设计模板（mvl-studio「新建项目」起点 / 手写也可以）
+#
+# 本文件是 MVL 接线的唯一事实源：图形编辑器 mvl-studio 只是它的编辑器，
+# 代码生成器 mvl-gen 从它生成 C 骨架。字段说明见各节注释。
+# 完整可运行样例见同目录 wifi_module.yaml。
+# ============================================================================
+
+# ---- 项目名（必填）：用于生成文件头注释与接线报告标题 ----
+project: my_project
+
+# ---- MVL 库版本（可选，记录用）----
+mvl_version: 0.1.0
+
+# ---- 应用配置（可选）：与 include/mvl/mvl_config.h 对应的参数，静态检查用 ----
+config:
+  # LVGL 投递池深度（≈ 单个分发周期内可能积压的 LVGL 事件数上限）。
+  # 有 ISR 发布的事件且订阅者在 LVGL 上下文时必填（检查规则 C3）。
+  lvgl_job_pool: 8
+
+# ---- 契约类型（可选）：Model/View/生产者共享的 typedef/enum/#define ----
+# 原始 C 片段，原样进入 mvl_model.h 的 USER CODE 段（重生成时保留手写修改）。
+types: |
+  /* 示例：
+  #define MVL_WIFI_AP_MAX   10
+
+  typedef struct {
+      char    ssid[33];
+      int8_t  rssi;
+      uint8_t authmode;
+  } mvl_wifi_ap_t;
+  */
+
+# ---- Model 状态字段表：mvl_state_t 的成员 ----
+# name: 字段名；type: C 类型（数组写作 "类型[N]"）；doc: 说明（可选）
+model:
+  - { name: example_state, type: uint32_t, doc: 示例字段（可删除） }
+  # - { name: wifi_aps,    type: "mvl_wifi_ap_t[10]", doc: 扫描结果 }
+
+# ---- Model 写接口表：生成 mvl_model_set_<name>() ----
+# 骨架自动完成「互斥写 + 发布 event 绑定的事件」；省略 event 则只写不发。
+# name: 接口名后缀；args: C 形参列表；event: 绑定事件 ID（可省）；doc: 说明（可选）
+setters:
+  - { name: example_state, args: "uint32_t value", event: EVT_EXAMPLE_UPDATED, doc: 示例写接口（可删除） }
+
+# ---- 事件表 ----
+# id:       事件名（全系统唯一）
+# segment:  分段基址（同段内按声明顺序自动编号；可用 value: N 显式指定）
+# payload:  none 或 ≤8 字节、不含指针的 C 类型（C2/C7）；大数据走「事件 + Model 快照」
+# publishers:  发布者列表。module: 模块名；context: lvgl / task / sys_evt / isr
+# subscribers: 订阅者列表。二选一：
+#              { handler: <ViewModel 回调名>, context: lvgl }
+#              { task: <任务名>, context: task_queue }
+# 注意：发布者 lvgl 且订阅者 lvgl 是错误组合（C1，自我死锁风险）。
+events:
+  - id: EVT_EXAMPLE_UPDATED
+    segment: 32
+    payload: none
+    doc: 示例状态事件（可删除）
+    publishers:
+      - { module: example_task, context: task }
+    subscribers:
+      - { handler: on_example_updated, context: lvgl }
+
+  # 命令事件（UI → 后台）示例：
+  # - id: EVT_CMD_EXAMPLE
+  #   segment: 96
+  #   payload: none
+  #   publishers:
+  #     - { module: view_example, context: lvgl }
+  #   subscribers:
+  #     - { task: example_task, context: task_queue }
+
+# ---- View 接口表：每个页面一组函数签名（只声明，不含实现）----
+# page: 页面名（生成 mvl_view_<page>.h/.c）
+# functions: name / args / returns（缺省 void）/ doc（可选）
+view_interfaces:
+  - page: example
+    functions:
+      - { name: show_state, args: "uint32_t value", doc: 示例 View 接口（可删除） }
+      # - { name: get_selected, args: "void", returns: "const char*" }

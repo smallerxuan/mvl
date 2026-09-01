@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  host:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build library, tests and host_sim
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Debug
+          cmake --build build
+
+      - name: Run unit tests
+        working-directory: build
+        run: ctest --output-on-failure
+
+      - name: Run host_sim demo
+        run: timeout 15 ./build/examples/host_sim/host_sim
+
+  tools:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install and test mvl-gen
+        working-directory: tools
+        run: |
+          python -m venv .venv
+          . .venv/bin/activate
+          pip install -e ".[dev]"
+          pytest -q

@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mvl-tools"
+version = "0.1.0"
+description = "MVL (MVVM-Lite) 配套代码生成工具：YAML 接线设计 -> C 骨架代码 / 静态检查 / mermaid 接线图"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+dependencies = [
+    "PyYAML>=5.4",
+    "Jinja2>=3.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0", "PySide6>=6.4"]
+gui = ["PySide6>=6.4"]
+
+[project.scripts]
+mvl-gen = "mvl_gen.cli:main"
+mvl-studio = "mvl_gen.studio.app:main"
+
+[tool.setuptools.packages.find]
+include = ["mvl_gen*"]
+
+[tool.setuptools.package-data]
+mvl_gen = ["templates/*.j2"]

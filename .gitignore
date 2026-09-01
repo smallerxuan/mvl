@@ -1,0 +1,20 @@
+# 构建产物
+build/
+*.o
+*.a
+
+# tools 虚拟环境与缓存
+tools/.venv/
+**/__pycache__/
+.pytest_cache/
+*.egg-info/
+
+# 本地解包的 Qt 系统库（libxcb-cursor0 绕过方案，见 tools/README.md）
+tools/.qtlibs/
+
+# 编辑器
+.vscode/
+.idea/
+
+# CTest 残留
+Testing/
