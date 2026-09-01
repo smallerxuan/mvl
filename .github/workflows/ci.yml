@@ -32,6 +32,13 @@ jobs:
         with:
           python-version: "3.11"
 
+      # PySide6 offscreen 测试需要 Qt 运行库（runner 未预装 libEGL 等）
+      - name: Install Qt runtime libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libegl1 libgl1 libxkbcommon0 libdbus-1-3 libfontconfig1
+
       - name: Install and test mvl-gen
         working-directory: tools
         run: |
