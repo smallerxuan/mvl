@@ -14,13 +14,13 @@ flowchart LR
         V["View (lv_* calls)"]
     end
 
-    T["any task / ISR"] -- "{function, context}" --> MSG["mvl_msg<br/>message queue"]
-    MSG -- "single-writer consumption" --> V
-    B["background tasks"] -- "write state" --> M[("Model<br/>state")]
-    M -- "state change" --> EVT["mvl_evt<br/>event bus"]
-    EVT -- "routes each event to the subscriber's OWN context" --> VM["ViewModel"]
-    VM -. "read snapshot" .-> M
-    VM -- "View interface" --> V
+    T["any task / ISR"] -->|"function + context"| MSG["mvl_msg<br/>message queue"]
+    MSG -->|"single-writer consumption"| V
+    B["background tasks"] -->|"write state"| M["Model<br/>state"]
+    M -->|"state change"| EVT["mvl_evt<br/>event bus"]
+    EVT -->|"routes each event to the subscriber's own context"| VM["ViewModel"]
+    VM -.->|"read snapshot"| M
+    VM -->|"View interface"| V
 ```
 
 - **`mvl_msg`** — thread-safe message queue. Any task/ISR posts
