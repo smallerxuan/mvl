@@ -249,7 +249,7 @@ LVGL 投递池满、任务订阅队列满时事件被丢弃并累计到该计数
 
 > **定位**：保留 MVVM 的分层与单向数据流思想，去掉双向绑定、依赖注入等重机制的嵌入式裁剪版。线程安全模型不变——所有 `lv_*()` 依然只在 LVGL 主任务执行。
 >
-> **库 / 应用分工**：`mvl_msg`、`mvl_evt` 由库提供；Model、ViewModel、View 接口层是应用按本节模式手写的薄层（完整示范见 `examples/host_sim/`）。
+> **库 / 应用分工**：`mvl_msg`、`mvl_evt` 由库提供；Model、ViewModel、View 接口层是应用按本节模式实现的薄层——骨架可由 `tools/mvl-gen` 从 YAML 接线描述生成（模板见 `examples/templates/`，完整示范见 `examples/host_sim/`）。
 
 ### 5.1 分层架构与职责
 
@@ -260,9 +260,9 @@ LVGL 投递池满、任务订阅队列满时事件被丢弃并累计到该计数
 | 层 | 归属 | 职责 | 禁止 |
 |----|------|------|------|
 | **View** | GUI Guider 生成代码 + 事件回调 | 展示；把用户操作翻译成命令事件发布 | 读写业务状态、引用后台队列 / 任务 |
-| **View 接口层** | 应用手写（每页面一套 `mvl_view_xxx.h/.c`） | 语义化 UI 操作接口；唯一认识 `ui_` 控件的地方 | 包含业务逻辑、被后台任务引用 |
-| **ViewModel** | 应用手写 | 订阅事件 → 读事件数据 / Model 快照 → 调 View 接口 | 直接操作 `ui_` 控件、业务计算、阻塞 |
-| **Model** | 应用手写 | 集中持有系统状态；`set_xxx()` = 写状态 + 发事件 | 调用任何 `lv_*()` |
+| **View 接口层** | 应用侧，每页面一套 `mvl_view_xxx.h/.c`（声明可由 mvl-gen 生成，实现手写） | 语义化 UI 操作接口；唯一认识 `ui_` 控件的地方 | 包含业务逻辑、被后台任务引用 |
+| **ViewModel** | 应用侧（订阅回调骨架可由 mvl-gen 生成，回调逻辑手写） | 订阅事件 → 读事件数据 / Model 快照 → 调 View 接口 | 直接操作 `ui_` 控件、业务计算、阻塞 |
+| **Model** | 应用侧（字段与 `set_xxx()` 由 mvl-gen 从 YAML 生成） | 集中持有系统状态；`set_xxx()` = 写状态 + 发事件 | 调用任何 `lv_*()` |
 | **事件总线** | 库提供 `mvl_evt` | 事件分发，按订阅者声明的上下文路由 | 携带大数据（只带 ≤ 8 字节值拷贝） |
 | **消息队列** | 库提供 `mvl_msg` | 一切 UI 操作的线程安全地基 | — |
 
@@ -289,7 +289,7 @@ void app_model_set_temp(float t)
 
 ### 5.3 ViewModel / View 接口层 / View
 
-**View 接口层**（每页面一个手写文件，全工程唯一认识 `ui_` 控件的地方）：
+**View 接口层**（每页面一个文件，声明可由 mvl-gen 生成、实现手写；全工程唯一认识 `ui_` 控件的地方）：
 
 ```c
 /* mvl_view_home.c —— 唯一允许 include GUI Guider 头文件的手写文件 */
@@ -499,6 +499,6 @@ void refresh_temp_label(void *ctx)
 | 提供方 | 内容 |
 |--------|------|
 | **库** | `mvl_msg`（消息队列）、`mvl_evt`（事件总线）、`mvl_port`（移植抽象）+ `port/` 下三个参考移植 |
-| **应用** | Model（状态中心）、ViewModel、View 接口层——按 §5 模式手写的薄层；事件 ID 定义（§4.3） |
+| **应用** | Model（状态中心）、ViewModel、View 接口层——按 §5 模式实现的薄层，骨架与事件 ID 定义可由 `mvl-gen` 从 YAML 生成（§4.3） |
 
 `examples/host_sim/` 是完整链路的 host 仿真：包含应用侧 Model / ViewModel / View 的参考写法、WiFi 扫描大数据走「事件 + Model 快照」、UI → 后台命令事件，以及正确的启动顺序，无需硬件即可运行并接入 CI。
