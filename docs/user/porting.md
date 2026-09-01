@@ -3,6 +3,7 @@
 *`mvl_port` 移植抽象层接口语义、参考移植对比与新平台移植步骤*
 
 > **配套文档**：[design.md](../design/design.md)（架构设计）· [pitfalls.md](pitfalls.md)（陷阱合集）
+> 
 > **相关文件**：`include/mvl/mvl_port.h`（接口契约）· `include/mvl/mvl_config.h`（配置宏）· `port/`（三个参考移植）
 
 ---

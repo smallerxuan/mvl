@@ -3,10 +3,15 @@
 *LVGL 8.x 多任务系统的线程安全机制 + MVVM-Lite 分层解耦*
 
 > **库定位**：MVL（MVVM-Lite）——适用于 LVGL 8.x 多任务系统的轻量 MVVM 支持库
+> 
 > **核心模块**：`mvl_msg`（消息队列，§3）· `mvl_evt`（事件总线，§4）· `mvl_port`（移植抽象，见 [porting.md](../user/porting.md)）
+> 
 > **适用环境**：LVGL 8.x + 任意 RTOS；平台差异由移植层吸收，本文内容平台通用
+> 
 > **配套文档**：[porting.md](../user/porting.md)（移植指南）· [pitfalls.md](../user/pitfalls.md)（陷阱合集）
+> 
 > **示例约定**：文中 `ui_xxx` 控件以 GUI Guider 生成工程为例，手写 UI 工程同样适用
+> 
 > **完整可运行示例**：`examples/host_sim/`（host 仿真，无硬件、无 LVGL 依赖即可跑通全链路）
 
 ---
