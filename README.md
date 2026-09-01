@@ -8,20 +8,9 @@ LVGL 8.x is **not thread-safe**: every `lv_*()` call must happen in one single
 task. MVL turns that constraint into an architecture — the *single-writer
 principle* — with two small mechanisms and one proven pattern:
 
-```mermaid
-flowchart LR
-    subgraph L["LVGL main task, the only task that calls lv_*()"]
-        V["View, lv_*() calls"]
-    end
+![MVL overview: any task or ISR posts function and context into the mvl_msg queue, only the LVGL main task consumes it and calls lv_*(); background tasks write Model state, the mvl_evt event bus dispatches changes to the ViewModel in its own context, and the ViewModel updates the View through its interface](docs/assets/mvl_overview_en.png)
 
-    T["any task / ISR"] -->|"function and context"| MSG["mvl_msg<br>message queue"]
-    MSG -->|"single-writer consumption"| V
-    B["background tasks"] -->|"write state"| M["Model<br>state"]
-    M -->|"state change"| EVT["mvl_evt<br>event bus"]
-    EVT -->|"dispatch to subscriber context"| VM["ViewModel"]
-    VM -.->|"read snapshot"| M
-    VM -->|"View interface"| V
-```
+<!-- Diagram source: docs/assets/mvl_overview_en.mmd (mermaid), re-render to PNG when editing -->
 
 - **`mvl_msg`** — thread-safe message queue. Any task/ISR posts
   `{function, context}`; only the LVGL task consumes. `lv_*()` is never called

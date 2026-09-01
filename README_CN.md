@@ -8,20 +8,9 @@ LVGL 8.x **不是线程安全的**：所有 `lv_*()` 调用必须发生在同一
 MVL 把这条约束变成架构——**单写者原则**——由两个小机制加一套经过真机
 验证的模式组成：
 
-```mermaid
-flowchart LR
-    subgraph L["LVGL 主任务（唯一允许碰 lv_*）"]
-        V["View（lv_* 调用）"]
-    end
+![MVL 架构图：任意任务/ISR 把函数与上下文投入 mvl_msg 队列，仅由 LVGL 主任务消费并调用 lv_*()；后台任务写 Model 状态，mvl_evt 事件总线把变更路由到 ViewModel 自身上下文，ViewModel 再经 View 接口更新界面](docs/assets/mvl_overview_cn.png)
 
-    T["任意任务 / ISR"] -->|"函数与上下文"| MSG["mvl_msg<br>消息队列"]
-    MSG -->|"单写者消费"| V
-    B["后台任务"] -->|"写状态"| M["Model<br>状态"]
-    M -->|"状态变更"| EVT["mvl_evt<br>事件总线"]
-    EVT -->|"路由到订阅者自己的上下文"| VM["ViewModel"]
-    VM -.->|"读快照"| M
-    VM -->|"View 接口"| V
-```
+<!-- 图源文件：docs/assets/mvl_overview_cn.mmd（mermaid），修改后重新渲染 PNG -->
 
 - **`mvl_msg`** —— 线程安全消息队列。任何任务/ISR 投递「函数指针 + 上下文」，
   只由 LVGL 主任务消费执行。`lv_*()` 再也不会跑错线程。
