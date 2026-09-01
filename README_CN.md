@@ -14,10 +14,10 @@ flowchart LR
         V["View（lv_* 调用）"]
     end
 
-    T["任意任务 / ISR"] -->|"函数 + 上下文"| MSG["mvl_msg<br/>消息队列"]
+    T["任意任务 / ISR"] -->|"函数与上下文"| MSG["mvl_msg<br>消息队列"]
     MSG -->|"单写者消费"| V
-    B["后台任务"] -->|"写状态"| M["Model<br/>状态"]
-    M -->|"状态变更"| EVT["mvl_evt<br/>事件总线"]
+    B["后台任务"] -->|"写状态"| M["Model<br>状态"]
+    M -->|"状态变更"| EVT["mvl_evt<br>事件总线"]
     EVT -->|"路由到订阅者自己的上下文"| VM["ViewModel"]
     VM -.->|"读快照"| M
     VM -->|"View 接口"| V

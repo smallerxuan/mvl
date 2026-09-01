@@ -10,15 +10,15 @@ principle* — with two small mechanisms and one proven pattern:
 
 ```mermaid
 flowchart LR
-    subgraph L["LVGL main task (the ONLY task that touches lv_*)"]
-        V["View (lv_* calls)"]
+    subgraph L["LVGL main task, the only task that calls lv_*()"]
+        V["View, lv_*() calls"]
     end
 
-    T["any task / ISR"] -->|"function + context"| MSG["mvl_msg<br/>message queue"]
+    T["any task / ISR"] -->|"function and context"| MSG["mvl_msg<br>message queue"]
     MSG -->|"single-writer consumption"| V
-    B["background tasks"] -->|"write state"| M["Model<br/>state"]
-    M -->|"state change"| EVT["mvl_evt<br/>event bus"]
-    EVT -->|"routes each event to the subscriber's own context"| VM["ViewModel"]
+    B["background tasks"] -->|"write state"| M["Model<br>state"]
+    M -->|"state change"| EVT["mvl_evt<br>event bus"]
+    EVT -->|"dispatch to subscriber context"| VM["ViewModel"]
     VM -.->|"read snapshot"| M
     VM -->|"View interface"| V
 ```
