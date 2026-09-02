@@ -25,7 +25,7 @@ principle* — with two small mechanisms and one proven pattern:
   wiring description with design-time static checks.
 
 The library core is ~400 lines of pure C and depends only on `mvl_port.h`
-(queue + critical section + assert). Reference ports: **ESP-IDF** (SMP-safe),
+(queue + critical section + mutex + assert). Reference ports: **ESP-IDF** (SMP-safe),
 **vanilla FreeRTOS**, **POSIX** (host simulation and CI).
 
 ## Quickstart — run it on your PC (no hardware needed)

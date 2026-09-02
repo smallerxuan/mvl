@@ -22,7 +22,7 @@ MVL 把这条约束变成架构——**单写者原则**——由两个小机制
   `examples/templates/`；也可用 `tools/mvl-gen` 从 YAML 接线描述生成，
   并带设计时静态检查。
 
-库本体约 400 行纯 C，只依赖 `mvl_port.h`（队列 + 临界区 + 断言）。
+库本体约 400 行纯 C，只依赖 `mvl_port.h`（队列 + 临界区 + 互斥锁 + 断言）。
 自带参考移植：**ESP-IDF**（SMP 持锁临界区）、**vanilla FreeRTOS**、
 **POSIX**（host 仿真与 CI）。
 
